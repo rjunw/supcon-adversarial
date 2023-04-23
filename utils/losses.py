@@ -11,7 +11,11 @@ import torch.nn as nn
 
 class SupConLoss(nn.Module):
     """Supervised Contrastive Learning: https://arxiv.org/pdf/2004.11362.pdf.
-    It also supports the unsupervised contrastive loss in SimCLR"""
+    It also supports the unsupervised contrastive loss in SimCLR
+    
+    -- Ryan
+    Modifications made as per https://github.com/HobbitLong/SupContrast/issues/104
+    """
     def __init__(self, temperature=0.07, contrast_mode='all',
                  base_temperature=0.07):
         super(SupConLoss, self).__init__()
@@ -41,6 +45,9 @@ class SupConLoss(nn.Module):
         if len(features.shape) > 3:
             features = features.view(features.shape[0], features.shape[1], -1)
 
+        # normalize
+        features = torch.nn.functional.normalize(features, p=2, dim=2)
+
         batch_size = features.shape[0]
         if labels is not None and mask is not None:
             raise ValueError('Cannot define both `labels` and `mask`')
@@ -56,10 +63,10 @@ class SupConLoss(nn.Module):
 
         contrast_count = features.shape[1]
         contrast_feature = torch.cat(torch.unbind(features, dim=1), dim=0)
-        if self.contrast_mode == 'one':
+        if self.contrast_mode == 'one': # compare to one anchor
             anchor_feature = features[:, 0]
             anchor_count = 1
-        elif self.contrast_mode == 'all':
+        elif self.contrast_mode == 'all': # compare all
             anchor_feature = contrast_feature
             anchor_count = contrast_count
         else:
@@ -86,10 +93,10 @@ class SupConLoss(nn.Module):
 
         # compute log_prob
         exp_logits = torch.exp(logits) * logits_mask
-        log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True))
+        log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True) + 1e-6)
 
         # compute mean of log-likelihood over positive
-        mean_log_prob_pos = (mask * log_prob).sum(1) / mask.sum(1)
+        mean_log_prob_pos = (mask*log_prob).sum(1)/(mask.sum(1)+1e-6)
 
         # loss
         loss = - (self.temperature / self.base_temperature) * mean_log_prob_pos
