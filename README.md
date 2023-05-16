@@ -1,7 +1,6 @@
 # Adversarially Robust Supervised Contrastive Learning for More Interpretable Computer-Aided Diagnosis
 
 ## Project Repo
---- 
 
 `data` -- directory with dataset code
 
@@ -12,3 +11,5 @@
 `models` -- feature extractor and classifier
 
 `*.ipynb` -- experiments
+
+--- 
